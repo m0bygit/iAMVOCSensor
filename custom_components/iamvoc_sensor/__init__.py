@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -11,6 +12,12 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "iamvoc_sensor"
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up the iAM VOC Sensor component."""
+    # This is required for UI-only configuration
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
