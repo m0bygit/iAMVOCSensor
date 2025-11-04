@@ -215,8 +215,8 @@ detail: 2
 ### Requirements
 
 - Home Assistant 2023.1.0 or newer
-- Python 3.11+
-- pyusb 1.2.1
+- Python 3.9+
+- pyusb 1.3.1
 
 ### Contributing
 
