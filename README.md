@@ -139,7 +139,7 @@ docker run -d \
 
 Once configured, the integration will create a sensor entity:
 
-- **Entity ID:** `sensor.iam_voc_sensor_volatile_organic_compounds_parts`
+- **Entity ID:** `sensor.iam_voc_sensor`
 - **Device Class:** Volatile Organic Compounds
 - **Unit:** PPM (Parts Per Million)
 
@@ -150,20 +150,20 @@ automation:
   - alias: "Alert on High VOC Levels"
     trigger:
       - platform: numeric_state
-        entity_id: sensor.iam_voc_sensor_volatile_organic_compounds_parts
+        entity_id: sensor.iam_voc_sensor
         above: 1000
     action:
       - service: notify.mobile_app
         data:
           title: "Air Quality Alert"
-          message: "VOC levels are high: {{ states('sensor.iam_voc_sensor_volatile_organic_compounds_parts') }} PPM"
+          message: "VOC levels are high: {{ states('sensor.iam_voc_sensor') }} PPM"
 ```
 
 ### Example Dashboard Card
 
 ```yaml
 type: sensor
-entity: sensor.iam_voc_sensor_volatile_organic_compounds_parts
+entity: sensor.iam_voc_sensor
 graph: line
 name: Indoor Air Quality
 detail: 2
