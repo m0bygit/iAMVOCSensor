@@ -1,0 +1,18 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up iAM VOC Sensor",
+        "description": "This integration will automatically detect your iAM VOC Sensor USB device (idVendor: 0x03eb, idProduct: 0x2013). Make sure the device is connected before proceeding.",
+        "data": {}
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to iAM VOC Sensor. Please ensure the USB device is connected and accessible.",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}

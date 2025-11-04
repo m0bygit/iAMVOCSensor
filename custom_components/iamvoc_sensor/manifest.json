@@ -1,7 +1,7 @@
 {
   "domain": "iamvoc_sensor",
   "name": "iAM VOC Sensor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/m0bygit/iAMVOCSensor/",
   "dependencies": [],
   "codeowners": ["@m0bygit"],
