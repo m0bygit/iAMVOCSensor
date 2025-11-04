@@ -42,7 +42,8 @@ The iAM VOC Sensor (also known as iAQ-Stick) is a USB-based air quality monitori
 2. **Install the Integration:**
    - Search for "iAM VOC Sensor" in HACS
    - Click "Download"
-   - Restart Home Assistant
+   - **Perform a FULL Home Assistant restart** (Settings → System → Restart)
+   - **Clear your browser cache** (`Ctrl+F5` or `Cmd+Shift+R`)
 
 ### Manual Installation
 
@@ -227,10 +228,22 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Make your changes
 4. Submit a pull request
 
+## Troubleshooting
+
+**Having issues?** See the comprehensive [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide.
+
+**Quick fixes for common issues:**
+- **"Cannot add from UI":** Perform a **full Home Assistant restart** (not quick reload) and clear your browser cache
+- **No icon showing:** Clear browser cache (`Ctrl+F5`) and do a hard refresh
+- **Device not found:** Check USB connection with `lsusb | grep 03eb:2013`
+
+For detailed solutions, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
 ## Support
 
 If you encounter issues or have questions:
 
+- **Troubleshooting Guide:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - **Issues:** [GitHub Issues](https://github.com/m0bygit/iAMVOCSensor/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/m0bygit/iAMVOCSensor/discussions)
 
