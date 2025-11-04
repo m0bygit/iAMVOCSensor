@@ -68,6 +68,17 @@ The iAM VOC Sensor (also known as iAQ-Stick) is a USB-based air quality monitori
 - USB device must be accessible by the Home Assistant host
 - For Docker/Container setups, ensure USB device passthrough is configured
 
+**Important:** This integration requires the **native iAQ-Stick USB device** that communicates via raw USB (not USB-to-serial adapter). The device should appear as:
+- **Vendor ID:** 0x03eb (Atmel/Microchip)
+- **Product ID:** 0x2013
+
+To verify your device is compatible, run the diagnostic script:
+```bash
+python3 diagnose_device.py
+```
+
+The script is available in the repository root and will help identify how your device connects.
+
 ### Adding the Integration
 
 1. Go to **Settings** → **Devices & Services**
