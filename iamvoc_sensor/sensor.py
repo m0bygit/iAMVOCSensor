@@ -1,34 +1,59 @@
 """Platform for sensor integration."""
-from __future__ import print_function
-from homeassistant.helpers.entity import Entity
+from __future__ import annotations
+
+import logging
+
 import usb.core
 import usb.util
-import sys
-import signal
-import time
-import multiprocessing
-import logging
+
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 _LOGGER = logging.getLogger(__name__)
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-	"""Set up the sensor platform."""
-	_LOGGER.info("setup_platform for iAMVOCSensor")
-	dev = iAMVOCSensor()
-	dev.setup()
-	if (not dev.alive):	
-		_LOGGER.critical("iaqstick: not alive?")
-	else:
-		add_entities([dev])
-		_LOGGER.info("iaqstick: running")
 
-class iAMVOCSensor(Entity):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the sensor platform."""
+    _LOGGER.info("Setting up iAM VOC Sensor")
+
+    def setup_sensor():
+        """Set up the sensor in executor."""
+        dev = iAMVOCSensor()
+        dev.setup()
+        return dev
+
+    try:
+        dev = await hass.async_add_executor_job(setup_sensor)
+        if not dev.alive:
+            _LOGGER.error("iAM VOC Sensor: Device not responding")
+            return
+        async_add_entities([dev], True)
+        _LOGGER.info("iAM VOC Sensor: Successfully initialized")
+    except Exception as err:
+        _LOGGER.exception("Failed to set up iAM VOC Sensor: %s", err)
+
+class iAMVOCSensor(SensorEntity):
 	"""Representation of a Sensor."""
+
+	_attr_has_entity_name = True
+	_attr_name = None
+	_attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS
+	_attr_state_class = SensorStateClass.MEASUREMENT
+	_attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
 
 	def __init__(self):
 		"""Initialize the sensor."""
+		self._attr_native_value = None
 		self._ppm = None
 		self.alive = False
+		self._attr_unique_id = "iamvoc_sensor_voc"
 	
 	def xfer_type1(self, msg):
 #		_LOGGER.info("xfer_type1")
@@ -120,38 +145,31 @@ class iAMVOCSensor(Entity):
 		except Exception as e:
 			_LOGGER.critical("iaqstick: releasing interface failed - " + str(e))
 	
+	@property
+	def device_info(self):
+		"""Return device information."""
+		return {
+			"identifiers": {("iamvoc_sensor", "iamvoc_usb")},
+			"name": "iAM VOC Sensor",
+			"manufacturer": "AppliedSensor",
+			"model": "iAQ-Stick",
+			"sw_version": "1.0",
+		}
+
 	def _update_values(self):
-	   #logger.debug("iaqstick: update")
+		"""Update sensor values from device."""
 		try:
 			self.xfer_type1('FLAGGET?')
 			meas = self.xfer_type2('*TR')
 			self._ppm = int.from_bytes(meas[2:4], byteorder='little')
-	#            print('iaqstick: ppm: ' + str(self.ppm))
-	       #logger.debug('iaqstick: debug?: {}'.format(int.from_bytes(meas[4:6], byteorder='little')))
-	       #logger.debug('iaqstick: PWM: {}'.format(int.from_bytes(meas[6:7], byteorder='little')))
-	       #logger.debug('iaqstick: Rh: {}'.format(int.from_bytes(meas[7:8], byteorder='little')*0.01))
-	       #logger.debug('iaqstick: Rs: {}'.format(int.from_bytes(meas[8:12], byteorder='little')))
+			self._attr_native_value = self._ppm
+			_LOGGER.debug("iAM VOC Sensor: Updated PPM value: %s", self._ppm)
 		except Exception as e:
-			_LOGGER.critical("iaqstick: update failed - " + str(e))
-
-	@property
-	def name(self):
-		"""Return the name of the sensor."""
-		return 'iAM VOC Sensor'
-
-	@property
-	def state(self):
-		"""Return the state of the sensor."""
-		return self._ppm
-
-	@property
-	def unit_of_measurement(self):
-		"""Return the unit of measurement."""
-		return 'PPM'
+			_LOGGER.error("iAM VOC Sensor: Update failed - %s", str(e))
 
 	def update(self):
 		"""Fetch new state data for the sensor.
-		
+
 		This is the only method that should fetch new data for Home Assistant.
 		"""
 		self._update_values()
