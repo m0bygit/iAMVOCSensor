@@ -258,6 +258,15 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.1 (2025-11-04)
+
+- Add translations directory for better UI compatibility
+- Add comprehensive troubleshooting guide
+- Add custom integration icon (USB stick with VOC visualization)
+- Update minimum Home Assistant version to 2024.1.0
+- Update pyusb dependency to 1.3.1 (latest)
+- Improve installation instructions with cache clearing steps
+
 ### Version 1.0.0 (2025-11-04)
 
 - Initial release
