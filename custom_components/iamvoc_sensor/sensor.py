@@ -157,15 +157,24 @@ class iAMVOCSensor(SensorEntity):
 		}
 
 	def _update_values(self):
-		"""Update sensor values from device."""
-		try:
-			self.xfer_type1('FLAGGET?')
-			meas = self.xfer_type2('*TR')
-			self._ppm = int.from_bytes(meas[2:4], byteorder='little')
-			self._attr_native_value = self._ppm
-			_LOGGER.debug("iAM VOC Sensor: Updated PPM value: %s", self._ppm)
-		except Exception as e:
-			_LOGGER.error("iAM VOC Sensor: Update failed - %s", str(e))
+        """Update sensor values from device."""
+        # If the device dropped offline, try to reinitialize before polling
+        if not self.alive:
+            _LOGGER.info("iAM VOC Sensor: Attempting to recover USB connection...")
+            self.setup()
+            if not self.alive:
+                return # Still dead, wait for the next cycle
+
+        try:
+            self.xfer_type1('FLAGGET?')
+            meas = self.xfer_type2('*TR')
+            self._ppm = int.from_bytes(meas[2:4], byteorder='little')
+            self._attr_native_value = self._ppm
+            _LOGGER.debug("iAM VOC Sensor: Updated PPM value: %s", self._ppm)
+        except Exception as e:
+            _LOGGER.error("iAM VOC Sensor: Update failed - %s. Flagging for reset.", str(e))
+            # Mark the device as dead so it triggers self.setup() on the next cycle
+            self.alive = False
 
 	def update(self):
 		"""Fetch new state data for the sensor.
