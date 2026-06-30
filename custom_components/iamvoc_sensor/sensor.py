@@ -87,56 +87,44 @@ class iAMVOCSensor(SensorEntity):
 		return in_data
 	
 	def setup(self):
-		self._dev = usb.core.find(idVendor=0x03eb, idProduct=0x2013)
-		if self._dev is None:
-			_LOGGER.critical('iaqstick: iAQ Stick not found')
-			return
-#		_LOGGER.info("-------------------------test1")
-		self._intf = 0
-		self._type1_seq = 0x0001
-		self._type2_seq = 0x67
-		
-		try:
-#			_LOGGER.info("-------------------------test2")
-			if self._dev.is_kernel_driver_active(self._intf):
-				self._dev.detach_kernel_driver(self._intf)
-		
-#			_LOGGER.info("-------------------------test3")
-			self._dev.set_configuration(0x01)
-			usb.util.claim_interface(self._dev, self._intf)
-			self._dev.set_interface_altsetting(self._intf, 0x00)
-#			_LOGGER.info("-------------------------test4")
-	
-	#            print ("Device:", self._dev.filename)
-	#            print ("  idVendor: %d (0x%04x)",format(self._dev.idVendor, self._dev.idVendor))
-	#            print ("  idProduct: %d (0x%04x)".format(self._dev.idProduct, self._dev.idProduct))
-#			manufacturer = usb.util.get_string(self._dev, 0x101, 0x409).encode('ascii')
-#			product = usb.util.get_string(self._dev, 0x101, 0x409).encode('ascii')
+        self._dev = usb.core.find(idVendor=0x03eb, idProduct=0x2013)
+        if self._dev is None:
+            _LOGGER.critical('iaqstick: iAQ Stick not found')
+            return
+        
+        self._intf = 0
+        self._type1_seq = 0x0001
+        self._type2_seq = 0x67
+        
+        try:
+            if self._dev.is_kernel_driver_active(self._intf):
+                self._dev.detach_kernel_driver(self._intf)
+        
+            # Safely handle the configuration request
+            try:
+                self._dev.set_configuration(0x01)
+            except usb.core.USBError as e:
+                # Error 16 means it's already configured. We can safely ignore it.
+                if e.errno == 16:
+                    _LOGGER.debug("iaqstick: Device already configured (Resource busy), continuing...")
+                else:
+                    raise e
 
-#			_LOGGER.info("Manufacturer:", manufacturer)
-#			_LOGGER.info("Serial:", str(self._dev.iSerialNumber))
-#			_LOGGER.info("Product:", product)
-	
-	#            manufacturer = usb.util.get_string(self._dev, 0x101, 0x01) #, 0x409)
-	#            print("test")
-	#            product = usb.util.get_string(self._dev, 0x101, 0x02) #, 0x409)
-	#            print('iaqstick: Manufacturer: ' + manufacturer + ' - Product: '+ product)
-			ret = self.xfer_type1('*IDN?')
-#			print(ret)
-#			self._dev.write(0x02, bytes('@@@@@@@@@@@@@@@@', 'utf-8'), self._intf, 1000)
-			self._dev.write(0x02, bytes('@@@@@@@@@@@@@@@@', 'utf-8'), 1000)
-			ret = self.xfer_type1('KNOBPRE?')
-	#            print(ret)
-			ret = self.xfer_type1('WFMPRE?')
-	#            print(ret)
-			ret = self.xfer_type1('FLAGS?')
-	#            print(ret)
-		except Exception as e:
-			_LOGGER.critical("iaqstick: init interface failed - " + str(e))
-			self._dev.reset()
-		else:
-			self.alive = True
-			_LOGGER.info("iaqstick: init successful")
+            usb.util.claim_interface(self._dev, self._intf)
+            self._dev.set_interface_altsetting(self._intf, 0x00)
+
+            ret = self.xfer_type1('*IDN?')
+            self._dev.write(0x02, bytes('@@@@@@@@@@@@@@@@', 'utf-8'), 1000)
+            ret = self.xfer_type1('KNOBPRE?')
+            ret = self.xfer_type1('WFMPRE?')
+            ret = self.xfer_type1('FLAGS?')
+            
+        except Exception as e:
+            _LOGGER.critical("iaqstick: init interface failed - " + str(e))
+            self._dev.reset()
+        else:
+            self.alive = True
+            _LOGGER.info("iaqstick: init successful")
 	
 	def stop(self):
 		self.alive = False
@@ -158,9 +146,18 @@ class iAMVOCSensor(SensorEntity):
 
 	def _update_values(self):
         """Update sensor values from device."""
-        # If the device dropped offline, try to reinitialize before polling
+        
+        # Self-healing loop: if the device dropped offline, try to reinitialize
         if not self.alive:
             _LOGGER.info("iAM VOC Sensor: Attempting to recover USB connection...")
+            
+            # Trash the zombie connection first
+            if hasattr(self, '_dev') and self._dev is not None:
+                try:
+                    usb.util.dispose_resources(self._dev)
+                except Exception as e:
+                    _LOGGER.debug("Cleanup of old USB resource failed: %s", e)
+
             self.setup()
             if not self.alive:
                 return # Still dead, wait for the next cycle
