@@ -40,53 +40,53 @@ async def async_setup_entry(
         _LOGGER.exception("Failed to set up iAM VOC Sensor: %s", err)
 
 class iAMVOCSensor(SensorEntity):
-	"""Representation of a Sensor."""
+    """Representation of a Sensor."""
 
-	_attr_has_entity_name = True
-	_attr_name = None
-	_attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS
-	_attr_state_class = SensorStateClass.MEASUREMENT
-	_attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+    _attr_has_entity_name = True
+    _attr_name = None
+    _attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
 
-	def __init__(self):
-		"""Initialize the sensor."""
-		self._attr_native_value = None
-		self._ppm = None
-		self.alive = False
-		self._attr_unique_id = "iamvoc_sensor_voc"
-	
-	def xfer_type1(self, msg):
+    def __init__(self):
+        """Initialize the sensor."""
+        self._attr_native_value = None
+        self._ppm = None
+        self.alive = False
+        self._attr_unique_id = "iamvoc_sensor_voc"
+    
+    def xfer_type1(self, msg):
 #		_LOGGER.info("xfer_type1")
-		in_data = bytes()
-		out_data = bytes('@{:04X}{}\n@@@@@@@@@@'.format(self._type1_seq, msg), 'utf-8')
-		self._type1_seq = (self._type1_seq + 1) & 0xFFFF
+        in_data = bytes()
+        out_data = bytes('@{:04X}{}\n@@@@@@@@@@'.format(self._type1_seq, msg), 'utf-8')
+        self._type1_seq = (self._type1_seq + 1) & 0xFFFF
 #		_LOGGER.info("xfer_type1(0x02, " + str(out_data[:16]) + ", 1000)")
 #		ret = self._dev.write(0x02, out_data[:16], self._intf, 1000)  # remove param _self._intf for other versions of pyusb?
-		ret = self._dev.write(0x02, out_data[:16], 1000)  # remove param _self._intf for other versions of pyusb?
+        ret = self._dev.write(0x02, out_data[:16], 1000)  # remove param _self._intf for other versions of pyusb?
 #		_LOGGER.info("post self._dev.write()")
-		while True:
+        while True:
 #			ret = bytes(self._dev.read(0x81, 0x10, self._intf, 1000))
-			ret = bytes(self._dev.read(0x81, 0x10, 1000))
-			if len(ret) == 0:
-				break
-			in_data += ret
-		return in_data.decode('iso-8859-1')
-	
-	def xfer_type2(self, msg):
-		out_data = bytes('@', 'utf-8') + self._type2_seq.to_bytes(1, byteorder='big') + bytes('{}\n@@@@@@@@@@@@@'.format(msg), 'utf-8')
-		self._type2_seq = (self._type2_seq + 1) if (self._type2_seq < 0xFF) else 0x67
+            ret = bytes(self._dev.read(0x81, 0x10, 1000))
+            if len(ret) == 0:
+                break
+            in_data += ret
+        return in_data.decode('iso-8859-1')
+    
+    def xfer_type2(self, msg):
+        out_data = bytes('@', 'utf-8') + self._type2_seq.to_bytes(1, byteorder='big') + bytes('{}\n@@@@@@@@@@@@@'.format(msg), 'utf-8')
+        self._type2_seq = (self._type2_seq + 1) if (self._type2_seq < 0xFF) else 0x67
 #		ret = self._dev.write(0x02, out_data[:16], self._intf, 1000)
-		ret = self._dev.write(0x02, out_data[:16], 1000)
-		in_data = bytes()
-		while True:
+        ret = self._dev.write(0x02, out_data[:16], 1000)
+        in_data = bytes()
+        while True:
 #			ret = bytes(self._dev.read(0x81, 0x10, self._intf, 1000))
-			ret = bytes(self._dev.read(0x81, 0x10, 1000))
-			if len(ret) == 0:
-				break
-			in_data += ret
-		return in_data
-	
-	def setup(self):
+            ret = bytes(self._dev.read(0x81, 0x10, 1000))
+            if len(ret) == 0:
+                break
+            in_data += ret
+        return in_data
+    
+    def setup(self):
         self._dev = usb.core.find(idVendor=0x03eb, idProduct=0x2013)
         if self._dev is None:
             _LOGGER.critical('iaqstick: iAQ Stick not found')
@@ -125,26 +125,26 @@ class iAMVOCSensor(SensorEntity):
         else:
             self.alive = True
             _LOGGER.info("iaqstick: init successful")
-	
-	def stop(self):
-		self.alive = False
-		try:
-			usb.util.release_interface(self._dev, self._intf)
-		except Exception as e:
-			_LOGGER.critical("iaqstick: releasing interface failed - " + str(e))
-	
-	@property
-	def device_info(self):
-		"""Return device information."""
-		return {
-			"identifiers": {("iamvoc_sensor", "iamvoc_usb")},
-			"name": "iAM VOC Sensor",
-			"manufacturer": "AppliedSensor",
-			"model": "iAQ-Stick",
-			"sw_version": "1.0",
-		}
+    
+    def stop(self):
+        self.alive = False
+        try:
+            usb.util.release_interface(self._dev, self._intf)
+        except Exception as e:
+            _LOGGER.critical("iaqstick: releasing interface failed - " + str(e))
+    
+    @property
+    def device_info(self):
+        """Return device information."""
+        return {
+            "identifiers": {("iamvoc_sensor", "iamvoc_usb")},
+            "name": "iAM VOC Sensor",
+            "manufacturer": "AppliedSensor",
+            "model": "iAQ-Stick",
+            "sw_version": "1.0",
+        }
 
-	def _update_values(self):
+    def _update_values(self):
         """Update sensor values from device."""
         
         # Self-healing loop: if the device dropped offline, try to reinitialize
@@ -173,9 +173,9 @@ class iAMVOCSensor(SensorEntity):
             # Mark the device as dead so it triggers self.setup() on the next cycle
             self.alive = False
 
-	def update(self):
-		"""Fetch new state data for the sensor.
+    def update(self):
+        """Fetch new state data for the sensor.
 
-		This is the only method that should fetch new data for Home Assistant.
-		"""
-		self._update_values()
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        self._update_values()
