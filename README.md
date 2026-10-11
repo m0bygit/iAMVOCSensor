@@ -269,6 +269,26 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.5 (2026-10-11)
+
+**Critical Stability Fixes:**
+- Remove dangerous USB device reset on initialization failure
+- Add automatic reconnection logic with retry mechanism
+- Implement proper `available` property for device state tracking
+- Add thread-safe USB communication with locking
+- Add safety limits to prevent infinite loops (max 10 read attempts)
+- Increase USB timeout from 1s to 2s for more reliable communication
+- Add proper resource cleanup on entity removal
+- Implement error counter with automatic reconnection after 5 consecutive failures
+- Add response validation before parsing sensor data
+- Better error logging and categorization
+
+**Changes:**
+- xfer_type1/xfer_type2 now have timeout protection and error handling
+- Device setup returns boolean success/failure instead of silently failing
+- Consecutive error tracking prevents repeated failed operations
+- USB interface properly released on shutdown and errors
+
 ### Version 1.0.1 (2025-11-04)
 
 - Add translations directory for better UI compatibility

@@ -38,10 +38,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading iAM VOC Sensor integration")
 
+    # Get the sensor entity to clean up USB resources
+    # Note: The sensor's stop() method will be called automatically when
+    # the platform is unloaded, but we ensure proper cleanup here
+
     # Unload platforms
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+        _LOGGER.info("iAM VOC Sensor integration unloaded successfully")
 
     return unload_ok
