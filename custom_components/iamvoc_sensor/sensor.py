@@ -9,7 +9,7 @@ import usb.util
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION
+from homeassistant.const import UnitOfRatio
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -52,7 +52,7 @@ class iAMVOCSensor(SensorEntity):
 	_attr_name = None
 	_attr_device_class = SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS
 	_attr_state_class = SensorStateClass.MEASUREMENT
-	_attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+	_attr_native_unit_of_measurement = UnitOfRatio.PARTS_PER_MILLION
 
 	def __init__(self):
 		"""Initialize the sensor."""

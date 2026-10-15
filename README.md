@@ -269,6 +269,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.7 (2026-10-15)
+
+**Deprecation Fix:**
+- Replace deprecated `CONCENTRATION_PARTS_PER_MILLION` with `UnitOfRatio.PARTS_PER_MILLION`
+- Fixes warning: "The deprecated constant CONCENTRATION_PARTS_PER_MILLION will be removed in HA Core 2027.8"
+- Future-proofs integration for upcoming Home Assistant releases
+
 ### Version 1.0.6 (2026-10-15)
 
 **Fixes for Flat Line / Stuck Value Issues:**
