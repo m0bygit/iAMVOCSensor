@@ -269,6 +269,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.8 (2026-10-15)
+
+**Performance Fix - Prevent Blocking Updates:**
+- Add reconnection cooldown (60 seconds between attempts) to prevent update blocking
+- Add `_reconnecting` flag to prevent multiple simultaneous reconnection attempts  
+- Reduce reconnection attempts from 3 to 1 per cycle to speed up process
+- Clear sensor value immediately when marking as unavailable
+- Attempt reconnection during updates when device is unavailable (with cooldown)
+
+**Issue:** Updates were taking >10 seconds and blocking (207 occurrences)
+**Root Cause:** Reconnection was synchronous and tried 3 times, blocking the update loop
+**Fix:** Non-blocking reconnection with cooldown + single fast attempt
+
+This prevents the "Update took longer than 30s" warnings when device disconnects.
+
 ### Version 1.0.7 (2026-10-15)
 
 **Deprecation Fix:**

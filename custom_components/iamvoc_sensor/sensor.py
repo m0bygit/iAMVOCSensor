@@ -67,6 +67,8 @@ class iAMVOCSensor(SensorEntity):
 		self._type2_seq = 0x67
 		self._consecutive_errors = 0
 		self._max_consecutive_errors = 5
+		self._reconnecting = False  # Prevent multiple simultaneous reconnection attempts
+		self._last_reconnect_attempt = 0  # Timestamp of last reconnect attempt
 	
 	def xfer_type1(self, msg):
 		"""Transfer type 1 command with safety limits."""
@@ -188,26 +190,43 @@ class iAMVOCSensor(SensorEntity):
 				return False
 	
 	def _reconnect(self):
-		"""Attempt to reconnect to the device."""
+		"""Attempt to reconnect to the device (non-blocking with cooldown)."""
+		import time
+
+		# Check if already reconnecting
+		if self._reconnecting:
+			_LOGGER.debug("iAM VOC Sensor: Reconnection already in progress, skipping")
+			return False
+
+		# Check cooldown period (don't try more than once per 60 seconds)
+		current_time = time.time()
+		if current_time - self._last_reconnect_attempt < 60:
+			_LOGGER.debug("iAM VOC Sensor: Reconnection cooldown active (last attempt %.0fs ago)",
+						 current_time - self._last_reconnect_attempt)
+			return False
+
+		self._reconnecting = True
+		self._last_reconnect_attempt = current_time
 		_LOGGER.info("iAM VOC Sensor: Attempting to reconnect...")
 
-		# Release old device if exists
-		if self._dev:
-			try:
-				usb.util.release_interface(self._dev, self._intf)
-			except:
-				pass
-			self._dev = None
+		try:
+			# Release old device if exists
+			if self._dev:
+				try:
+					usb.util.release_interface(self._dev, self._intf)
+				except:
+					pass
+				self._dev = None
 
-		# Try to reconnect
-		for attempt in range(RECONNECT_ATTEMPTS):
-			_LOGGER.debug("iAM VOC Sensor: Reconnection attempt %d/%d", attempt + 1, RECONNECT_ATTEMPTS)
+			# Try to reconnect (only 1 attempt now to avoid blocking)
 			if self.setup():
 				_LOGGER.info("iAM VOC Sensor: Reconnection successful")
 				return True
-
-		_LOGGER.error("iAM VOC Sensor: Reconnection failed after %d attempts", RECONNECT_ATTEMPTS)
-		return False
+			else:
+				_LOGGER.warning("iAM VOC Sensor: Reconnection failed, will retry after cooldown")
+				return False
+		finally:
+			self._reconnecting = False
 
 	def stop(self):
 		"""Clean up USB resources."""
@@ -241,8 +260,12 @@ class iAMVOCSensor(SensorEntity):
 	def _update_values(self):
 		"""Update sensor values from device."""
 		if not self._alive:
-			_LOGGER.debug("iAM VOC Sensor: Device not alive, skipping update")
+			_LOGGER.debug("iAM VOC Sensor: Device not alive, attempting recovery")
 			self._attr_native_value = None  # Clear value when unavailable
+
+			# Try to reconnect if not already trying (with cooldown)
+			if not self._reconnecting:
+				self._reconnect()
 			return
 
 		with self._usb_lock:
@@ -265,12 +288,15 @@ class iAMVOCSensor(SensorEntity):
 				_LOGGER.error("iAM VOC Sensor: USB error during update - %s (error count: %d)",
 							 str(e), self._consecutive_errors)
 
-				# If too many consecutive errors, try to reconnect
+				# If too many consecutive errors, mark as unavailable and schedule reconnection
 				if self._consecutive_errors >= self._max_consecutive_errors:
-					_LOGGER.warning("iAM VOC Sensor: Too many consecutive errors, attempting reconnect")
+					_LOGGER.warning("iAM VOC Sensor: Too many consecutive errors, marking unavailable")
 					self._alive = False
-					if not self._reconnect():
-						_LOGGER.error("iAM VOC Sensor: Device disconnected, will retry on next update")
+					self._attr_native_value = None  # Clear stale value
+
+					# Try to reconnect (non-blocking with cooldown)
+					if not self._reconnecting:
+						self._reconnect()  # Will skip if cooldown active
 
 			except Exception as e:
 				self._consecutive_errors += 1
