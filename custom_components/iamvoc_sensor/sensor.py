@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 _LOGGER = logging.getLogger(__name__)
 
 # Constants
-MAX_READ_ATTEMPTS = 10  # Maximum read attempts in xfer loops
+MAX_READ_ATTEMPTS = 50  # Maximum read attempts in xfer loops (50 * 16 bytes = 800 bytes max)
 RECONNECT_ATTEMPTS = 3  # Maximum reconnection attempts
 USB_TIMEOUT_MS = 2000  # USB timeout in milliseconds
 
@@ -96,8 +96,10 @@ class iAMVOCSensor(SensorEntity):
 				raise
 
 		if read_count >= MAX_READ_ATTEMPTS:
-			_LOGGER.warning("iAM VOC Sensor: Max read attempts reached in xfer_type1")
+			_LOGGER.error("iAM VOC Sensor: Max read attempts reached in xfer_type1 - device may be stuck (read %d bytes)", len(in_data))
+			raise usb.core.USBError("Max read attempts exceeded")
 
+		_LOGGER.debug("iAM VOC Sensor: xfer_type1 read %d bytes in %d attempts", len(in_data), read_count)
 		return in_data.decode('iso-8859-1')
 	
 	def xfer_type2(self, msg):
@@ -128,8 +130,10 @@ class iAMVOCSensor(SensorEntity):
 				raise
 
 		if read_count >= MAX_READ_ATTEMPTS:
-			_LOGGER.warning("iAM VOC Sensor: Max read attempts reached in xfer_type2")
+			_LOGGER.error("iAM VOC Sensor: Max read attempts reached in xfer_type2 - device may be stuck (read %d bytes)", len(in_data))
+			raise usb.core.USBError("Max read attempts exceeded")
 
+		_LOGGER.debug("iAM VOC Sensor: xfer_type2 read %d bytes in %d attempts", len(in_data), read_count)
 		return in_data
 	
 	@property
@@ -238,6 +242,7 @@ class iAMVOCSensor(SensorEntity):
 		"""Update sensor values from device."""
 		if not self._alive:
 			_LOGGER.debug("iAM VOC Sensor: Device not alive, skipping update")
+			self._attr_native_value = None  # Clear value when unavailable
 			return
 
 		with self._usb_lock:

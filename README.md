@@ -269,6 +269,19 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### Version 1.0.6 (2026-10-15)
+
+**Fixes for Flat Line / Stuck Value Issues:**
+- Increase MAX_READ_ATTEMPTS from 10 to 50 (800 bytes max) for devices with longer responses
+- Treat max read attempts as fatal error - triggers reconnection instead of silent failure
+- Clear sensor value to None when device becomes unavailable (prevents flat lines on graphs)
+- Add debug logging showing bytes read and attempt count for each transfer
+- Max read attempts now raises USBError to trigger proper error handling and reconnection
+
+**Issue:** Sensors were showing long flat sections on graphs when device communication failed
+**Root Cause:** Max read limit was too low AND old values weren't cleared when unavailable
+**Fix:** Higher limit + proper error handling + clear stale values
+
 ### Version 1.0.5 (2026-10-11)
 
 **Critical Stability Fixes:**
